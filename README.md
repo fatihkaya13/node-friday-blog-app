@@ -98,7 +98,7 @@ yarn dev or yarn start
 
 ### Folder Structure
 
--   All folders without node modules
+-   All folders without node modules and .env file.
 
 ```
 
