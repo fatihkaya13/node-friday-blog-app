@@ -1,0 +1,42 @@
+{
+  "name": "friday-blog-app",
+  "version": "1.0.0",
+  "description": "Backend for a blog application that uses MongoDB, NodeJS and ExpressJS",
+  "main": "app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getir-nodejs-bootcamp/friday-blog-app.git"
+  },
+  "keywords": [
+    "mongodb",
+    "nodejs",
+    "auth",
+    "javascript"
+  ],
+  "author": "Fatih Kaya",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/getir-nodejs-bootcamp/friday-blog-app/issues"
+  },
+  "homepage": "https://github.com/getir-nodejs-bootcamp/friday-blog-app#readme",
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "helmet": "^4.6.0",
+    "http-status": "^1.5.0",
+    "joi": "^17.5.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.1.1",
+    "nodemailer": "^6.7.2",
+    "twilio": "^3.72.0",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
