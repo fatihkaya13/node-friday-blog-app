@@ -11,105 +11,95 @@ const {
     incrementLike,
     decrementLike,
 } = require('../services/Blogs');
+
 const {
     getCommentsForBlog,
     removeCommentsForBlogId,
 } = require('../services/Comments');
+
 const { listReadingListsByBlogId } = require('../services/Readinglists');
+
 const httpStatus = require('http-status');
 
-const index = (req, res) => {
+const ApiError = require('../errors/ApiError');
+
+const index = (req, res, next) => {
     // console.log(req.user)
     list()
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const getBlog = (req, res) => {
-    if (!req.params?.id) {
-        return res.status(httpStatus.BAD_REQUEST).send({
-            message: 'Blog ID is missing.',
-        });
-    }
+const getBlog = (req, res, next) => {
     listById(req.params?.id)
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const getPopularBlogs = (req, res) => {
+const getPopularBlogs = (req, res, next) => {
     listPopularBlogs()
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const getPopularBlogsByCategory = (req, res) => {
-    if (!req.params?.category) {
-        return res.status(httpStatus.BAD_REQUEST).send({
-            message: 'Category is missing.',
-        });
-    }
+const getPopularBlogsByCategory = (req, res, next) => {
     listPopularBlogsByCategory(req.params.category)
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const getRecommendedBlogsForUser = (req, res) => {
+const getRecommendedBlogsForUser = (req, res, next) => {
     listRecommendedBlogsForUser(req.userInfo.preferredHashtags)
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
 // this query performs a search operation for each text field in blog collection
-const searchBlogsByKeywords = (req, res) => {
+const searchBlogsByKeywords = (req, res, next) => {
     if (!req.body?.keywords) {
+        return next(
+            new ApiError(
+                "Keywords are missing. Please write keywords with a space between such as 'coffee newyork'",
+                httpStatus.BAD_REQUEST
+            )
+        );
+        /*
         return res.status(httpStatus.BAD_REQUEST).send({
             message:
                 "Keywords are missing. Please write keywords with a space between such as 'coffee newyork'",
-        });
+        }); */
     }
 
     listBlogsByGivenWords(req.body.keywords)
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const createBlog = (req, res) => {
+const createBlog = (req, res, next) => {
     // get user info from auth middleware
     const { _id, full_name } = req.userInfo;
 
@@ -124,36 +114,21 @@ const createBlog = (req, res) => {
             res.status(httpStatus.CREATED).send(response);
         })
         .catch((e) => {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            });
+            next(new ApiError(e.message));
         });
 };
 
 const updateBlog = (req, res) => {
-    console.log(req.params.id);
-    if (!req.params?.id) {
-        return res.status(httpStatus.BAD_REQUEST).send({
-            message: 'Blog ID is missing.',
-        });
-    }
     modify(req.body, req.params?.id)
         .then((updatedBlog) => {
             res.status(httpStatus.OK).send(updatedBlog);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const deleteBlog = (req, res) => {
-    if (!req.params?.id) {
-        return res.status(httpStatus.BAD_REQUEST).send({
-            message: 'Blog ID is missing.',
-        });
-    }
+const deleteBlog = (req, res, next) => {
     //  remove comments for blog
     // TODOS: write leaner implementation
     getCommentsForBlog(req.params)
@@ -165,21 +140,17 @@ const deleteBlog = (req, res) => {
                             `${removedComments.deletedCount} comments are removed`
                         );
                     })
-                    .catch((e) =>
-                        res
-                            .status(httpStatus.INTERNAL_SERVER_ERROR)
-                            .send({ error: e.message })
-                    );
+                    .catch((e) => {
+                        next(new ApiError(e.message));
+                    });
             }
             console.log(
                 `Comments for blog id: ${req.params.id} are safely removed.`
             );
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // remove blogs from reading lists
     listReadingListsByBlogId(req.params.id)
@@ -197,44 +168,33 @@ const deleteBlog = (req, res) => {
                 });
             });
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // remove blog
     remove(req.params?.id)
         .then((deletedBlog) => {
             console.log('deleted blog >> ', deletedBlog);
             if (!deletedBlog) {
-                return res.status(httpStatus.NOT_FOUND).send({
-                    message: 'Blog cannot be found.',
-                });
+                return next(
+                    new ApiError('Blog cannot be found', httpStatus.NOT_FOUND)
+                );
             }
             res.status(httpStatus.OK).send({
                 message: 'Blog is removed.',
             });
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const sendLikeFlag = (req, res) => {
+const sendLikeFlag = (req, res, next) => {
     // get user info from auth middleware
     // get like flag from request body
     const { liked } = req.body;
     const { _id } = req.userInfo;
-
-    // check if blog exists
-    if (!req.params?.id) {
-        return res.status(httpStatus.BAD_REQUEST).send({
-            message: 'Blog ID is missing.',
-        });
-    }
 
     //TODOS: refactoring into single units required !!!
 
@@ -243,20 +203,21 @@ const sendLikeFlag = (req, res) => {
         listById(req.params?.id)
             .then((blog) => {
                 if (!blog)
-                    return res
-                        .status(httpStatus.NOT_FOUND)
-                        .send({ message: 'Blog not found' });
+                    return next(
+                        new ApiError(
+                            'Blog cannot be found',
+                            httpStatus.NOT_FOUND
+                        )
+                    );
 
                 // check if user liked this blog before
                 const isUserLikedThisBlogBefore = blog.likedByUsers.find(
                     (elem) => elem.user_id?.toString() === _id
                 );
                 if (isUserLikedThisBlogBefore)
-                    return res
-                        .status(httpStatus.OK)
-                        .send({
-                            message: 'Current user has already liked this blog',
-                        });
+                    return res.status(httpStatus.OK).send({
+                        message: 'Current user has already liked this blog',
+                    });
 
                 // create object to add array
                 const likedByUser = {
@@ -273,21 +234,17 @@ const sendLikeFlag = (req, res) => {
                             .then((updatedBlog) => {
                                 res.status(httpStatus.OK).send(updatedBlog);
                             })
-                            .catch((e) =>
-                                res
-                                    .status(httpStatus.INTERNAL_SERVER_ERROR)
-                                    .send({ error: e.message })
-                            );
+                            .catch((e) => {
+                                next(new ApiError(e.message));
+                            });
                     })
                     .catch((e) => {
-                        res.status(httpStatus.INTERNAL_SERVER_ERROR).send(e);
+                        next(new ApiError(e.message));
                     });
             })
-            .catch((e) =>
-                res
-                    .status(httpStatus.INTERNAL_SERVER_ERROR)
-                    .send({ error: e.message })
-            );
+            .catch((e) => {
+                next(new ApiError(e.message));
+            });
     }
 
     // user wants to remove like
@@ -296,9 +253,12 @@ const sendLikeFlag = (req, res) => {
         listById(req.params?.id)
             .then((blog) => {
                 if (!blog)
-                    return res
-                        .status(httpStatus.NOT_FOUND)
-                        .send({ message: 'Blog not found' });
+                    return next(
+                        new ApiError(
+                            'Blog cannot be found',
+                            httpStatus.NOT_FOUND
+                        )
+                    );
 
                 // user should liked this blog before
                 const isUserLikedThisBlogBefore = blog.likedByUsers.find(
@@ -306,7 +266,7 @@ const sendLikeFlag = (req, res) => {
                 );
                 if (!isUserLikedThisBlogBefore)
                     res.status(httpStatus.OK).send({
-                        message: 'Current user has did not liked this blog',
+                        message: 'Current user did not liked this blog',
                     });
 
                 // remove current user from array then save and update doc
@@ -321,21 +281,17 @@ const sendLikeFlag = (req, res) => {
                             .then((updatedBlog) => {
                                 res.status(httpStatus.OK).send(updatedBlog);
                             })
-                            .catch((e) =>
-                                res
-                                    .status(httpStatus.INTERNAL_SERVER_ERROR)
-                                    .send({ error: e.message })
-                            );
+                            .catch((e) => {
+                                next(new ApiError(e.message));
+                            });
                     })
                     .catch((e) => {
-                        res.status(httpStatus.INTERNAL_SERVER_ERROR).send(e);
+                        next(new ApiError(e.message));
                     });
             })
-            .catch((e) =>
-                res
-                    .status(httpStatus.INTERNAL_SERVER_ERROR)
-                    .send({ error: e.message })
-            );
+            .catch((e) => {
+                next(new ApiError(e.message));
+            });
     }
 };
 

@@ -20,7 +20,9 @@ const {
 } = require('../scripts/utils/passwordUtil');
 const { generateAccessToken } = require('../scripts/utils/tokenUtil');
 
-const create = (req, res) => {
+const ApiError = require('../errors/ApiError');
+
+const create = (req, res, next) => {
     req.body.password = passwordToHash(req.body.password);
 
     insert(req.body)
@@ -28,32 +30,32 @@ const create = (req, res) => {
             res.status(httpStatus.CREATED).send(response);
         })
         .catch((e) => {
-            // checks for duplicate key errors for email too
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            });
+            // checks for duplicate mails error too
+            next(new ApiError(e.message));
         });
 };
 
-const update = (req, res) => {
+const update = (req, res, next) => {
     // get user info from auth middleware
     modify({ _id: req.userInfo?._id }, req.body)
         .then((updatedUser) => {
             res.status(httpStatus.OK).send(updatedUser);
         })
-        .catch((e) => res.status().send({ error: e.message }));
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // TODOS: when user full_name changes, authors at blogs and comments should be changed too
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
     const { email } = req.body;
     loginUser({ email: email })
         .then((user) => {
             if (!user)
-                return res
-                    .status(httpStatus.NOT_FOUND)
-                    .send({ message: 'User not found' });
+                return next(
+                    new ApiError('User not found', httpStatus.NOT_FOUND)
+                );
 
             const passwordMatch = comparePassword(
                 req.body.password,
@@ -61,9 +63,12 @@ const login = (req, res) => {
             );
 
             if (!passwordMatch)
-                return res
-                    .status(httpStatus.NOT_FOUND)
-                    .send({ message: 'Password does not match' });
+                return next(
+                    new ApiError(
+                        'Password does not match',
+                        httpStatus.NOT_FOUND
+                    )
+                );
 
             user = {
                 ...user.toObject(),
@@ -74,22 +79,26 @@ const login = (req, res) => {
             delete user.password;
             res.status(httpStatus.OK).send(user);
         })
-        .catch((e) => res.status(httpStatus.INTERNAL_SERVER_ERROR).send(e));
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
 const getCurrentUserSessionInfo = (req, res) => {
     res.status(httpStatus.OK).send(req.userInfo);
 };
 
-const index = (req, res) => {
+const index = (req, res, next) => {
     list()
         .then((response) => {
             res.status(httpStatus.OK).send(response);
         })
-        .catch((e) => res.status(httpStatus.INTERNAL_SERVER_ERROR).send(e));
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const resetPassword = (req, res) => {
+const resetPassword = (req, res, next) => {
     const new_password =
         uuid.v4()?.split('-')[0] || `usr-${new Date().getTime()}`;
     modify(
@@ -98,9 +107,9 @@ const resetPassword = (req, res) => {
     )
         .then((updatedUser) => {
             if (!updatedUser)
-                return res
-                    .status(httpStatus.NOT_FOUND)
-                    .send({ error: 'user not found' });
+                return next(
+                    new ApiError('User not found', httpStatus.NOT_FOUND)
+                );
 
             eventEmitter.emit('send_email', {
                 to: updatedUser.email, // list of receivers
@@ -119,14 +128,12 @@ const resetPassword = (req, res) => {
                 message: 'Mail has been sent to user email',
             });
         })
-        .catch(() =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: 'An error occurred while updating passowrd.' })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const changePassword = (req, res) => {
+const changePassword = (req, res, next) => {
     // this will send with SMS, plain password without hash
     const new_password = req.body.password;
 
@@ -137,9 +144,12 @@ const changePassword = (req, res) => {
     modify({ _id: req.userInfo._id }, req.body)
         .then((updatedUser) => {
             if (!updatedUser)
-                return res
-                    .status(httpStatus.NOT_FOUND)
-                    .send({ error: 'user password has not been changed.' });
+                return next(
+                    new ApiError(
+                        'User password has not been changed',
+                        httpStatus.NOT_FOUND
+                    )
+                );
 
             if (req.userInfo.preferences.sendSMS) {
                 eventEmitter.emit('send_sms', {
@@ -150,14 +160,12 @@ const changePassword = (req, res) => {
 
             res.status(httpStatus.OK).send(updatedUser);
         })
-        .catch((e) =>
-            res
-                .status(httpStatus.INTERNAL_SERVER_ERROR)
-                .send({ error: e.message })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
-const deleteUser = (req, res) => {
+const deleteUser = (req, res, next) => {
     if (!req.params?.id) {
         return res.status(httpStatus.BAD_REQUEST).send({
             message: 'ID Info is missing',
@@ -170,33 +178,27 @@ const deleteUser = (req, res) => {
         .then((removedBlogs) => {
             console.log(removedBlogs);
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // remove comments posted by user
     removeCommentsForUser(_id)
         .then((removedComments) => {
             console.log(removedComments);
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // remove reading lists created by user
     removeReadingListsForUser(_id)
         .then((removedReadingLists) => {
             console.log(removedReadingLists);
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // find blogs where blogs.likedByUsers array contains current user id
 
@@ -212,29 +214,28 @@ const deleteUser = (req, res) => {
                 blog.save();
             });
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 
     // it is safe to remove user now
     remove(req.params?.id)
         .then((deletedUser) => {
             if (!deletedUser) {
-                return res.status(httpStatus.NOT_FOUND).send({
-                    message: 'User is not being removed',
-                });
+                return next(
+                    new ApiError(
+                        'User id is not being removed',
+                        httpStatus.NOT_FOUND
+                    )
+                );
             }
             res.status(httpStatus.OK).send({
                 message: 'User has been removed',
             });
         })
-        .catch((e) =>
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-                error: e.message,
-            })
-        );
+        .catch((e) => {
+            next(new ApiError(e.message));
+        });
 };
 
 module.exports = {
