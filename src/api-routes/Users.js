@@ -14,6 +14,8 @@ const {
     deleteUser,
 } = require('../controllers/Users');
 
+const idChecker = require('../middlewares/idChecker');
+
 const router = express.Router();
 
 router.get('/', authenticate, index);
@@ -33,6 +35,6 @@ router
         validate(schemas.changePasswordValidation),
         changePassword
     );
-router.route('/:id').delete(authenticate, deleteUser);
+router.route('/:id').delete(idChecker, authenticate, deleteUser);
 
 module.exports = router;

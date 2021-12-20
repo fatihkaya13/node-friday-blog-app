@@ -16,6 +16,8 @@ const {
     sendLikeFlag,
 } = require('../controllers/Blogs');
 
+const idChecker = require('../middlewares/idChecker');
+
 const router = express.Router();
 
 router.route('/').get(index);
@@ -28,20 +30,26 @@ router
         searchBlogsByKeywords
     );
 router.route('/recommend-me').get(authenticate, getRecommendedBlogsForUser);
-router.route('/:id').get(authenticate, getBlog);
+router.route('/:id').get(idChecker, authenticate, getBlog);
 router
     .route('/')
     .post(authenticate, validate(schemas.createValidation), createBlog);
 router
     .route('/:id')
-    .patch(authenticate, validate(schemas.updateValidation), updateBlog);
+    .patch(
+        idChecker,
+        authenticate,
+        validate(schemas.updateValidation),
+        updateBlog
+    );
 router
     .route('/:id/like-flag')
     .patch(
+        idChecker,
         authenticate,
         validate(schemas.sendLikeFlagValidation),
         sendLikeFlag
     );
-router.route('/:id').delete(authenticate, deleteBlog);
+router.route('/:id').delete(idChecker, authenticate, deleteBlog);
 
 module.exports = router;
