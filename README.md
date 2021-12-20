@@ -71,7 +71,7 @@ yarn dev or yarn start
 | GET /blogs/:id                     | Returns updated user information                                                                         |                         | **required**   |
 | POST /blogs                        | Returns new created blog document                                                                        | `text, title, category` | **required**   |
 | PATCH /blogs/:id                   | Returns updated blog document                                                                            |                         | **required**   |
-| PATCH /blogs/:id/like-flag         | Returns like count of blog                                                                         | `{liked: boolean}`      | **required**   |
+| PATCH /blogs/:id/like-flag         | Returns like count of blog                                                                               | `{liked: boolean}`      | **required**   |
 | DELETE /blogs/:id                  | Deletes the blog by given id and deletes if comments exists for this blog                                |                         | **required**   |
 
 ## Comments Service
@@ -123,11 +123,15 @@ yarn dev or yarn start
 │   │   ├── Readinglists.js
 │   │   ├── Users.js
 │   │   └── index.js
+│   ├── errors
+│   │   └── ApiError.js
 │   ├── loaders
 │   │   ├── db.js
 │   │   └── index.js
 │   ├── middlewares
 │   │   ├── authenticate.js
+│   │   ├── errorHandler.js
+│   │   ├── idChecker.js
 │   │   └── validate.js
 │   ├── models
 │   │   ├── Blogs.js
@@ -169,7 +173,6 @@ yarn dev or yarn start
 -   An event is fired when a user resets his/her password.
 
 <img width="596" alt="nodemailer" src="https://user-images.githubusercontent.com/56218812/146563643-502b2132-e509-40de-9b07-c5c38c00a4f7.png">
-
 
 ### FATİH KAYA
 
