@@ -44,7 +44,7 @@ const listPopularBlogs = () => {
 };
 
 const listPopularBlogsByCategory = (categoryToFilter) => {
-    console.log(categoryToFilter);
+
     const pipeline = [
         {
             $match: {
